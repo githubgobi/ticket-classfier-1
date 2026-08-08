@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { askQuestion } from '../api';
+import LoadingSpinner from './LoadingSpinner.vue';
 
 const question = ref('');
 
@@ -39,7 +40,7 @@ async function handleSubmit() {
                     v-model="question"
                     rows="3"
                     maxlength="2000"
-                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm transition-colors focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none"
                     placeholder="What status code do I get if the Groq request times out?"
                 ></textarea>
                 <p v-if="fieldErrors.question" class="mt-1 text-sm text-red-600">{{ fieldErrors.question[0] }}</p>
@@ -48,8 +49,9 @@ async function handleSubmit() {
             <button
                 type="submit"
                 :disabled="loading"
-                class="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                class="inline-flex items-center gap-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
+                <LoadingSpinner v-if="loading" />
                 {{ loading ? 'Asking...' : 'Ask' }}
             </button>
         </form>

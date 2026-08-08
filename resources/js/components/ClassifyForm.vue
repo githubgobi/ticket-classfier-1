@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { classifyTicket } from '../api';
+import LoadingSpinner from './LoadingSpinner.vue';
 
 const title = ref('');
 const description = ref('');
@@ -49,7 +50,7 @@ async function handleSubmit() {
                     v-model="title"
                     type="text"
                     maxlength="255"
-                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm transition-colors focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none"
                     placeholder="App crashes on login"
                 />
                 <p v-if="fieldErrors.title" class="mt-1 text-sm text-red-600">{{ fieldErrors.title[0] }}</p>
@@ -62,7 +63,7 @@ async function handleSubmit() {
                     v-model="description"
                     rows="4"
                     maxlength="5000"
-                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
+                    class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm transition-colors focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none"
                     placeholder="Tapping Sign in closes the app immediately on iOS 17."
                 ></textarea>
                 <p v-if="fieldErrors.description" class="mt-1 text-sm text-red-600">{{ fieldErrors.description[0] }}</p>
@@ -71,8 +72,9 @@ async function handleSubmit() {
             <button
                 type="submit"
                 :disabled="loading"
-                class="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                class="inline-flex items-center gap-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
+                <LoadingSpinner v-if="loading" />
                 {{ loading ? 'Classifying...' : 'Classify' }}
             </button>
         </form>

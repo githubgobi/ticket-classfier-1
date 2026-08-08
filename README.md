@@ -95,6 +95,17 @@ interfere with each other.
    via Ollama, and stores `{ source, chunk_index, content, embedding }` rows
    in `document_chunks`.
 
+### Frontend
+
+A small Vue 3 SPA (`resources/js/`) provides a UI for both endpoints —
+Classify and Ask tabs, served from `GET /`.
+
+```bash
+npm install
+npm run dev    # Vite dev server with HMR
+npm run build  # production build into public/build
+```
+
 ## Testing
 
 ```bash
@@ -107,6 +118,14 @@ to the real `pgsql_rag` Postgres connection (there's no faking a database),
 but wrap each test in a rolled-back transaction, so nothing is left behind —
 you do need a working Postgres + pgvector setup (see below) to run those
 tests.
+
+Frontend component tests (Vitest + Vue Test Utils) cover both forms' success,
+validation-error, and service-error states, with `classifyTicket`/`askQuestion`
+mocked — no backend needs to be running:
+
+```bash
+npm test
+```
 
 ## API
 
