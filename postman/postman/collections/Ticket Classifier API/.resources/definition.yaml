@@ -1,0 +1,4 @@
+$kind: collection
+description: Test suite for the Ticket Classifier Laravel API. Run against a real running instance (php artisan serve or Laragon) with a valid GROK_API_KEY configured — these hit the live Groq-backed endpoint, they are not mocked.
+variables:
+  baseUrl: http://ticket-classifier.test

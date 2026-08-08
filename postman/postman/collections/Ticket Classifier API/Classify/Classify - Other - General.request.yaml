@@ -1,0 +1,38 @@
+$kind: http-request
+name: Classify - Other / General
+url: "{{baseUrl}}/api/classify"
+method: POST
+headers:
+  Content-Type: application/json
+  Accept: application/json
+body:
+  type: text
+  content: |-
+    {
+      "title": "General question",
+      "description": "Do you offer student discounts?"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status is 200', function () {
+          pm.response.to.have.status(200);
+      });
+
+      const body = pm.response.json();
+
+      pm.test('Response has category, confidence, reasoning', function () {
+          pm.expect(body).to.have.property('category');
+          pm.expect(body).to.have.property('confidence');
+          pm.expect(body).to.have.property('reasoning');
+      });
+
+      pm.test('Category is other', function () {
+          pm.expect(body.category).to.eql('other');
+      });
+
+      pm.test('Confidence is between 0 and 1', function () {
+          pm.expect(body.confidence).to.be.at.least(0).and.at.most(1);
+      });
+    language: text/javascript
+order: 4000

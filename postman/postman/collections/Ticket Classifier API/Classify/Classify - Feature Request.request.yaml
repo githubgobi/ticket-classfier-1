@@ -1,0 +1,37 @@
+$kind: http-request
+url: "{{baseUrl}}/api/classify"
+method: POST
+headers:
+  Content-Type: application/json
+  Accept: application/json
+body:
+  type: text
+  content: |-
+    {
+      "title": "Add dark mode",
+      "description": "Would love a dark theme option in settings."
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status is 200', function () {
+          pm.response.to.have.status(200);
+      });
+
+      const body = pm.response.json();
+
+      pm.test('Response has category, confidence, reasoning', function () {
+          pm.expect(body).to.have.property('category');
+          pm.expect(body).to.have.property('confidence');
+          pm.expect(body).to.have.property('reasoning');
+      });
+
+      pm.test('Category is feature-request', function () {
+          pm.expect(body.category).to.eql('feature-request');
+      });
+
+      pm.test('Confidence is between 0 and 1', function () {
+          pm.expect(body.confidence).to.be.at.least(0).and.at.most(1);
+      });
+    language: text/javascript
+order: 2000

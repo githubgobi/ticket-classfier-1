@@ -1,0 +1,3 @@
+$kind: collection
+description: Run this folder alone via Collection Runner with 6 iterations and 0ms delay. Requests 1-5 should return 200, request 6 should return 429.
+order: 2000

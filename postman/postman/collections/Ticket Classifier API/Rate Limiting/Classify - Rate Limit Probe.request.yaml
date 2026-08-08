@@ -1,0 +1,29 @@
+$kind: http-request
+url: "{{baseUrl}}/api/classify"
+method: POST
+headers:
+  Content-Type: application/json
+  Accept: application/json
+body:
+  type: text
+  content: |-
+    {
+      "title": "App crashes on login",
+      "description": "Tapping Sign in closes the app immediately."
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      const iteration = pm.info.iteration;
+
+      if (iteration < 5) {
+          pm.test('Request ' + (iteration + 1) + ' of 6 is allowed (200)', function () {
+              pm.response.to.have.status(200);
+          });
+      } else {
+          pm.test('Request ' + (iteration + 1) + ' of 6 is rate limited (429)', function () {
+              pm.response.to.have.status(429);
+          });
+      }
+    language: text/javascript
+order: 1000

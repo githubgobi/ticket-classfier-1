@@ -1,0 +1,15 @@
+# Use this workspace to collaborate
+workspace:
+  id: 60727e31-b80c-4549-9df2-51497702f56d
+
+localResources:
+  collections:
+    - ../Ticket-Classifier.postman_collection.json
+  environments:
+    - ../Ticket-Classifier.postman_environment.json
+
+# Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
+
+cloudResources:
+  collections:
+    ../postman/collections/Ticket Classifier API: 0aca3346-d506-4b5f-b897-e3788bb2cb07

@@ -1,0 +1,289 @@
+{
+  "info": {
+    "_postman_id": "f1e6a6a0-6c1a-4b3e-9c1a-ticketclassifier01",
+    "name": "Ticket Classifier API",
+    "description": "Test suite for the Ticket Classifier Laravel API. Run against a real running instance (php artisan serve or Laragon) with a valid GROK_API_KEY configured — these hit the live Groq-backed endpoint, they are not mocked.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://ticket-classifier.test", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/up", "host": ["{{baseUrl}}"], "path": ["up"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Classify",
+      "item": [
+        {
+          "name": "Classify - Bug Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"App crashes on login\",\n  \"description\": \"Tapping Sign in closes the app immediately on iOS 17.\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/classify", "host": ["{{baseUrl}}"], "path": ["api", "classify"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Response has category, confidence, reasoning', function () {",
+                  "    pm.expect(body).to.have.property('category');",
+                  "    pm.expect(body).to.have.property('confidence');",
+                  "    pm.expect(body).to.have.property('reasoning');",
+                  "});",
+                  "",
+                  "pm.test('Category is bug', function () {",
+                  "    pm.expect(body.category).to.eql('bug');",
+                  "});",
+                  "",
+                  "pm.test('Confidence is between 0 and 1', function () {",
+                  "    pm.expect(body.confidence).to.be.at.least(0).and.at.most(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Classify - Feature Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Add dark mode\",\n  \"description\": \"Would love a dark theme option in settings.\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/classify", "host": ["{{baseUrl}}"], "path": ["api", "classify"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Response has category, confidence, reasoning', function () {",
+                  "    pm.expect(body).to.have.property('category');",
+                  "    pm.expect(body).to.have.property('confidence');",
+                  "    pm.expect(body).to.have.property('reasoning');",
+                  "});",
+                  "",
+                  "pm.test('Category is feature-request', function () {",
+                  "    pm.expect(body.category).to.eql('feature-request');",
+                  "});",
+                  "",
+                  "pm.test('Confidence is between 0 and 1', function () {",
+                  "    pm.expect(body.confidence).to.be.at.least(0).and.at.most(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Classify - Documentation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"README setup steps are wrong\",\n  \"description\": \"The install command in the README fails on a fresh clone.\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/classify", "host": ["{{baseUrl}}"], "path": ["api", "classify"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Response has category, confidence, reasoning', function () {",
+                  "    pm.expect(body).to.have.property('category');",
+                  "    pm.expect(body).to.have.property('confidence');",
+                  "    pm.expect(body).to.have.property('reasoning');",
+                  "});",
+                  "",
+                  "pm.test('Category is documentation', function () {",
+                  "    pm.expect(body.category).to.eql('documentation');",
+                  "});",
+                  "",
+                  "pm.test('Confidence is between 0 and 1', function () {",
+                  "    pm.expect(body.confidence).to.be.at.least(0).and.at.most(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Classify - Other / General",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"General question\",\n  \"description\": \"Do you offer student discounts?\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/classify", "host": ["{{baseUrl}}"], "path": ["api", "classify"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Response has category, confidence, reasoning', function () {",
+                  "    pm.expect(body).to.have.property('category');",
+                  "    pm.expect(body).to.have.property('confidence');",
+                  "    pm.expect(body).to.have.property('reasoning');",
+                  "});",
+                  "",
+                  "pm.test('Category is other', function () {",
+                  "    pm.expect(body.category).to.eql('other');",
+                  "});",
+                  "",
+                  "pm.test('Confidence is between 0 and 1', function () {",
+                  "    pm.expect(body.confidence).to.be.at.least(0).and.at.most(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Classify - Validation Error (missing fields)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": { "raw": "{{baseUrl}}/api/classify", "host": ["{{baseUrl}}"], "path": ["api", "classify"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 422', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Errors object has title and description', function () {",
+                  "    pm.expect(body.errors).to.have.property('title');",
+                  "    pm.expect(body.errors).to.have.property('description');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Rate Limiting",
+      "description": "Run this folder alone via Collection Runner with 6 iterations and 0ms delay. Requests 1-5 should return 200, request 6 should return 429.",
+      "item": [
+        {
+          "name": "Classify - Rate Limit Probe",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"App crashes on login\",\n  \"description\": \"Tapping Sign in closes the app immediately.\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/classify", "host": ["{{baseUrl}}"], "path": ["api", "classify"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const iteration = pm.info.iteration;",
+                  "",
+                  "if (iteration < 5) {",
+                  "    pm.test('Request ' + (iteration + 1) + ' of 6 is allowed (200)', function () {",
+                  "        pm.response.to.have.status(200);",
+                  "    });",
+                  "} else {",
+                  "    pm.test('Request ' + (iteration + 1) + ' of 6 is rate limited (429)', function () {",
+                  "        pm.response.to.have.status(429);",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

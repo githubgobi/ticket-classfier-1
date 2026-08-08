@@ -1,0 +1,4 @@
+name: Ticket Classifier Local
+values:
+  - key: baseUrl
+    value: 'http://ticket-classifier.test'

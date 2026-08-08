@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/api/classify"
+method: POST
+headers:
+  Content-Type: application/json
+  Accept: application/json
+body:
+  type: text
+  content: "{}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status is 422', function () {
+          pm.response.to.have.status(422);
+      });
+
+      const body = pm.response.json();
+
+      pm.test('Errors object has title and description', function () {
+          pm.expect(body.errors).to.have.property('title');
+          pm.expect(body.errors).to.have.property('description');
+      });
+    language: text/javascript
+order: 5000
