@@ -99,6 +99,22 @@ return [
             'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 
+        // Dedicated Postgres + pgvector connection for the RAG document/embeddings
+        // feature. Kept separate from the MySQL 'mysql' connection used by tickets.
+        'pgsql_rag' => [
+            'driver' => 'pgsql',
+            'host' => env('RAG_DB_HOST', '127.0.0.1'),
+            'port' => env('RAG_DB_PORT', '5432'),
+            'database' => env('RAG_DB_DATABASE', 'ticket_classifier_rag'),
+            'username' => env('RAG_DB_USERNAME', 'postgres'),
+            'password' => env('RAG_DB_PASSWORD', ''),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => 'prefer',
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),

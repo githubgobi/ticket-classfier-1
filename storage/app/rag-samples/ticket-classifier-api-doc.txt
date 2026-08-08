@@ -1,0 +1,23 @@
+Ticket Classifier API Documentation
+
+The Ticket Classifier is a Laravel application that automatically categorizes
+support tickets. It exposes a POST /api/classify endpoint that accepts a
+ticket title and description and returns a category, a confidence score,
+and a short reasoning string.
+
+The four supported categories are: bug, feature-request, documentation, and
+other. If the underlying language model returns something outside that set,
+the API falls back to the "other" category so consumers always get a valid
+value.
+
+The classification endpoint is rate limited to 5 requests per minute per
+client. Requests beyond that limit receive a 429 Too Many Requests response.
+
+Under the hood, classification is powered by Groq's chat completions API,
+using the llama-3.3-70b-versatile model. The service builds a system prompt
+containing category definitions and worked examples, then asks the model to
+respond with a JSON object containing category, confidence, and reasoning.
+
+If the Groq API key is missing, the endpoint returns a 500 error. If the
+Groq API itself returns an error response, the endpoint returns a 502. If
+the request to Groq times out, the endpoint returns a 504.

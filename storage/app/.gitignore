@@ -1,4 +1,6 @@
 *
 !private/
 !public/
+!rag-samples/
+!rag-samples/**
 !.gitignore

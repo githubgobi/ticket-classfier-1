@@ -244,6 +244,168 @@
       ]
     },
     {
+      "name": "Ask (RAG)",
+      "description": "Tests for POST /api/ask. The content-specific requests assume the sample fixture has been ingested first: php artisan rag:ingest storage/app/rag-samples/ticket-classifier-api-doc.txt --max-chars=300 --overlap=50. The structural-check and validation requests work regardless of what's been ingested.",
+      "item": [
+        {
+          "name": "Ask - Retrieves Relevant Context",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What status code do I get if the Groq request times out?\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/ask", "host": ["{{baseUrl}}"], "path": ["api", "ask"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Response has answer and sources', function () {",
+                  "    pm.expect(body).to.have.property('answer');",
+                  "    pm.expect(body).to.have.property('sources');",
+                  "    pm.expect(body.sources).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Answer mentions 504', function () {",
+                  "    pm.expect(body.answer).to.include('504');",
+                  "});",
+                  "",
+                  "pm.test('At least one source is the ingested fixture', function () {",
+                  "    pm.expect(body.sources.length).to.be.above(0);",
+                  "    pm.expect(body.sources[0].source).to.eql('ticket-classifier-api-doc.txt');",
+                  "    pm.expect(body.sources[0]).to.have.property('chunk_index');",
+                  "    pm.expect(body.sources[0]).to.have.property('distance');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ask - Refuses to Answer Off-Topic Questions",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What is the capital of France?\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/ask", "host": ["{{baseUrl}}"], "path": ["api", "ask"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Model declines rather than hallucinating', function () {",
+                  "    pm.expect(body.answer.toLowerCase()).to.include(\"don't have enough information\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ask - Structural Check (works with any ingested state)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Summarize whatever documents are available.\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/ask", "host": ["{{baseUrl}}"], "path": ["api", "ask"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('answer is a string', function () {",
+                  "    pm.expect(body.answer).to.be.a('string');",
+                  "});",
+                  "",
+                  "pm.test('sources is an array of well-formed entries', function () {",
+                  "    pm.expect(body.sources).to.be.an('array');",
+                  "    body.sources.forEach(function (s) {",
+                  "        pm.expect(s).to.have.property('source');",
+                  "        pm.expect(s).to.have.property('chunk_index');",
+                  "        pm.expect(s).to.have.property('distance');",
+                  "        pm.expect(s.distance).to.be.a('number');",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ask - Validation Error (missing question)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": { "raw": "{{baseUrl}}/api/ask", "host": ["{{baseUrl}}"], "path": ["api", "ask"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 422', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Errors object has question', function () {",
+                  "    pm.expect(body.errors).to.have.property('question');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Rate Limiting",
       "description": "Run this folder alone via Collection Runner with 6 iterations and 0ms delay. Requests 1-5 should return 200, request 6 should return 429.",
       "item": [

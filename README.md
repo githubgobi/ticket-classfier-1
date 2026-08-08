@@ -1,7 +1,9 @@
 # Ticket Classifier
 
 Laravel API that classifies a support ticket's title and description into a
-category, using Groq's chat completions API.
+category, using Groq's chat completions API. Also includes a small RAG
+(retrieval-augmented generation) document Q&A system built on Postgres +
+pgvector.
 
 **Live demo:** _add deployed URL here_
 
@@ -9,7 +11,12 @@ category, using Groq's chat completions API.
 
 - PHP 8.3+
 - Composer
-- MySQL
+- MySQL (ticket classifier)
+- PostgreSQL 18+ with the [pgvector](https://github.com/pgvector/pgvector)
+  extension (RAG document Q&A)
+- [Ollama](https://ollama.com) running locally with the `nomic-embed-text`
+  model pulled (`ollama pull nomic-embed-text`) — used for free, local
+  embeddings, no API key required
 
 ## Setup
 
@@ -42,14 +49,64 @@ requests go to Groq's OpenAI-compatible endpoint.
 php artisan migrate
 ```
 
+### RAG (Postgres + pgvector) setup
+
+The RAG feature uses a **separate** Postgres connection (`pgsql_rag`), kept
+independent of the MySQL connection above so the two features can't
+interfere with each other.
+
+1. Create the database and enable the extension:
+
+   ```sql
+   CREATE DATABASE ticket_classifier_rag;
+   \c ticket_classifier_rag
+   CREATE EXTENSION vector;
+   ```
+
+2. Configure `.env`:
+
+   ```
+   RAG_DB_HOST=127.0.0.1
+   RAG_DB_PORT=5432
+   RAG_DB_DATABASE=ticket_classifier_rag
+   RAG_DB_USERNAME=postgres
+   RAG_DB_PASSWORD=your-postgres-password
+
+   OLLAMA_BASE_URI=http://localhost:11434
+   OLLAMA_EMBED_MODEL=nomic-embed-text
+   ```
+
+3. Run the RAG-specific migration (it lives in its own subfolder and its
+   own connection, so it's never picked up by a plain `php artisan migrate`
+   against MySQL, and vice versa):
+
+   ```bash
+   php artisan migrate --database=pgsql_rag --path=database/migrations/pgsql_rag
+   ```
+
+4. Ingest a document (`.txt`, `.md`, or `.pdf`):
+
+   ```bash
+   php artisan rag:ingest path/to/document.pdf
+   # optional: --max-chars=800 --overlap=100 to tune chunk size
+   ```
+
+   This extracts text, splits it into overlapping chunks, embeds each chunk
+   via Ollama, and stores `{ source, chunk_index, content, embedding }` rows
+   in `document_chunks`.
+
 ## Testing
 
 ```bash
 php artisan test
 ```
 
-HTTP calls to Groq are faked in tests (`Http::fake()`) — no real API key or
-network access is needed to run the suite.
+HTTP calls to Groq and Ollama are faked in tests (`Http::fake()`) — no real
+API key or network access is needed to run the suite. The RAG tests do write
+to the real `pgsql_rag` Postgres connection (there's no faking a database),
+but wrap each test in a rolled-back transaction, so nothing is left behind —
+you do need a working Postgres + pgvector setup (see below) to run those
+tests.
 
 ## API
 
@@ -118,13 +175,66 @@ message.
 
 <!-- Add a screenshot of a real request/response here, e.g. from Postman or curl. -->
 
+### `POST /api/ask`
+
+Answers a question using retrieval-augmented generation: embeds the
+question (Ollama), finds the most similar chunks in `document_chunks`
+(Postgres cosine distance), and asks Groq to answer using only that
+context. If nothing has been ingested, or the context doesn't cover the
+question, it says so instead of guessing.
+
+**Request body**
+
+| Field      | Type   | Required | Notes            |
+|------------|--------|----------|------------------|
+| `question` | string | yes      | Max 2000 chars.  |
+
+```bash
+curl -X POST http://ticket-classifier.test/api/ask \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What status code do I get if the Groq request times out?"}'
+```
+
+**Success — `200 OK`**
+
+```json
+{
+    "answer": "504",
+    "sources": [
+        { "source": "sample-doc.txt", "chunk_index": 4, "distance": 0.2703 },
+        { "source": "sample-doc.txt", "chunk_index": 2, "distance": 0.3564 }
+    ]
+}
+```
+
+`sources` is ordered nearest-first; `distance` is cosine distance (lower is
+more similar). When no documents are indexed, `answer` is a fixed
+"I don't have enough information to answer that." message and `sources` is
+empty — Groq is never called in that case.
+
+**Validation error — `422 Unprocessable Content`** — same shape as
+`/api/classify`'s, with a `question` field error.
+
+**Service errors**
+
+| Status | Cause                                          |
+|--------|-------------------------------------------------|
+| `502`  | Ollama embedding request failed.                |
+| `502`  | Groq returned a non-2xx response.                |
+
 ## Postman collection
 
 A ready-made collection lives in [`postman/`](postman/):
 
-- `Ticket-Classifier.postman_collection.json` — health check, one request per
-  category (bug/feature-request/documentation/other), a validation-error
-  case, and a rate-limit probe, each with `pm.test()` assertions.
+- `Ticket-Classifier.postman_collection.json` — four folders:
+  - **Classify**: one request per category (bug/feature-request/documentation/other)
+    plus a validation-error case, each with `pm.test()` assertions.
+  - **Ask (RAG)**: content-aware retrieval check, an off-topic question that
+    should be declined rather than hallucinated, a structural-only check
+    that works regardless of what's ingested, and a validation-error case.
+  - **Rate Limiting**: a `/api/classify` probe meant for Collection Runner.
+  - **Health Check**: `GET /up`.
 - `Ticket-Classifier.postman_environment.json` — sets `baseUrl` (defaults to
   `http://ticket-classifier.test`; change it to `http://127.0.0.1:8000` if
   you're using `php artisan serve`).
@@ -133,8 +243,19 @@ A ready-made collection lives in [`postman/`](postman/):
 "Ticket Classifier Local" environment in the top-right dropdown, then run
 requests individually or hit "Run collection".
 
-These requests hit a real running server and a real Groq API — no faking —
-so the app must be up with a valid `GROK_API_KEY` in `.env`.
+These requests hit a real running server and real Groq/Ollama services — no
+faking — so the app must be up with a valid `GROK_API_KEY` in `.env` and
+Ollama running locally.
+
+**Before running the "Ask (RAG)" folder's content-specific requests**,
+ingest the bundled fixture so results are reproducible:
+
+```bash
+php artisan rag:ingest storage/app/rag-samples/ticket-classifier-api-doc.txt --max-chars=300 --overlap=50
+```
+
+The "Structural Check" and "Validation Error" requests in that folder work
+regardless of what's been ingested.
 
 **Rate-limit folder:** run the "Rate Limiting" folder by itself via
 Collection Runner with **6 iterations** and **0ms delay**. The test script

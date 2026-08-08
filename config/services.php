@@ -43,4 +43,9 @@ return [
         'timeout' => env('GROQ_TIMEOUT', 10),
     ],
 
+    'ollama' => [
+        'base_uri' => env('OLLAMA_BASE_URI', 'http://localhost:11434'),
+        'embed_model' => env('OLLAMA_EMBED_MODEL', 'nomic-embed-text'),
+    ],
+
 ];
