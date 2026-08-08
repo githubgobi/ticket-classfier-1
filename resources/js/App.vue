@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import ClassifyForm from './components/ClassifyForm.vue';
+import AskForm from './components/AskForm.vue';
 
 const activeTab = ref('classify');
 </script>
@@ -34,9 +35,7 @@ const activeTab = ref('classify');
             </nav>
 
             <ClassifyForm v-if="activeTab === 'classify'" />
-            <p v-else class="text-sm text-gray-500">
-                Ask screen — coming in Phase 3.
-            </p>
+            <AskForm v-else />
         </main>
     </div>
 </template>
