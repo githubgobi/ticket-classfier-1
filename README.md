@@ -5,7 +5,11 @@ category, using Groq's chat completions API. Also includes a small RAG
 (retrieval-augmented generation) document Q&A system built on Postgres +
 pgvector.
 
-**Live demo:** _add deployed URL here_
+**Status:** local development only — no hosted deployment yet. The RAG
+feature depends on a locally running Ollama server, which most PaaS
+platforms don't support out of the box; going live would mean either
+swapping to a cloud embedding provider or self-hosting Ollama on a VPS.
+Neither is planned right now.
 
 ## Requirements
 
@@ -17,6 +21,33 @@ pgvector.
 - [Ollama](https://ollama.com) running locally with the `nomic-embed-text`
   model pulled (`ollama pull nomic-embed-text`) — used for free, local
   embeddings, no API key required
+
+## Local development quickstart
+
+Everything this app needs must be running **before** you use it:
+
+1. MySQL and your web server (e.g. via Laragon) — for `/api/classify`
+2. PostgreSQL 18 with pgvector — for `/api/ask`
+3. Ollama (`ollama serve`, usually already running as a background service)
+
+Then verify all of it in one shot:
+
+```bash
+php artisan app:health-check
+```
+
+This checks the `pdo_mysql`/`pdo_pgsql` PHP extensions, both DB connections,
+the pgvector extension, `GROK_API_KEY`, and whether Ollama is reachable —
+and exits non-zero if anything's missing, so it's safe to script.
+
+**One gotcha this won't catch:** `app:health-check` runs as PHP CLI, which
+loads extensions fresh every invocation. If you edit `php.ini` (e.g. to
+enable `pdo_pgsql`) while your web server (Apache/Nginx/Laragon) is already
+running, the CLI checks will pass but the actual web-facing app will still
+fail with `could not find driver` until you **restart the web server** —
+it's holding onto the PHP process from before your `php.ini` edit. Restart
+Laragon (or your web server) any time you change `php.ini`, then re-test
+through the browser/domain, not just via `artisan`.
 
 ## Setup
 
