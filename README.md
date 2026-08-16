@@ -11,6 +11,18 @@ platforms don't support out of the box; going live would mean either
 swapping to a cloud embedding provider or self-hosting Ollama on a VPS.
 Neither is planned right now.
 
+## Related projects
+
+Part of a set of three independent systems built the same way (Laravel +
+free-tier/local LLMs, tested, documented):
+
+- **Ticket Classifier + RAG** (this repo)
+- [Security Auditor](https://github.com/githubgobi/security-auditor-php) — CLI scanner mapping PHP code issues to the OWASP LLM Top 10
+- [Streaming Chat](https://github.com/githubgobi/streaming-chat) — SSE streaming chat UI + a SQL query optimizer
+
+They don't share code or a database — each is a standalone, independently
+deployable system, on purpose.
+
 ## Requirements
 
 - PHP 8.3+
