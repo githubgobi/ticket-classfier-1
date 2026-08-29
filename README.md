@@ -173,6 +173,12 @@ mocked — no backend needs to be running:
 npm test
 ```
 
+**Evals** are a different, separate concern from the tests above — see
+[docs/EVALS.md](docs/EVALS.md). The test suite fakes every Groq call, so it
+verifies the *code* but says nothing about classification *quality*.
+[tests/golden/tickets.json](tests/golden/tickets.json) is a 30-example,
+human-labeled fixture for that — no eval harness yet, that's next.
+
 ## API
 
 ### `POST /api/classify`
