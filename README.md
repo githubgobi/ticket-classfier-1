@@ -1,5 +1,8 @@
 # Ticket Classifier
 
+[![Tests](https://github.com/githubgobi/ticket-classfier-1/actions/workflows/tests.yml/badge.svg)](https://github.com/githubgobi/ticket-classfier-1/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Laravel API that classifies a support ticket's title and description into a
 category, using Groq's chat completions API. Also includes a small RAG
 (retrieval-augmented generation) document Q&A system built on Postgres +
