@@ -17,6 +17,13 @@ class TicketClassifierTest extends TestCase
         // The throttle middleware's rate-limit counters live in the default
         // cache store, which persists across tests within one PHPUnit run.
         Cache::flush();
+
+        // GroqService throws before making any HTTP call if the configured
+        // key is empty, so Http::fake() below only takes effect if a
+        // non-empty key is set too — don't rely on the ambient .env having
+        // a real one (it won't in CI, where .env is freshly copied from
+        // .env.example).
+        config(['services.groq.key' => 'test-key']);
     }
 
     private function fakeGroqResponse(string $category, float $confidence, string $reasoning): void

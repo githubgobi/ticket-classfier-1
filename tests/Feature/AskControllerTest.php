@@ -13,6 +13,18 @@ class AskControllerTest extends TestCase
 
     protected $connectionsToTransact = ['pgsql_rag'];
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // GroqService throws before making any HTTP call if the configured
+        // key is empty, so Http::fake() below only takes effect if a
+        // non-empty key is set too — don't rely on the ambient .env having
+        // a real one (it won't in CI, where .env is freshly copied from
+        // .env.example).
+        config(['services.groq.key' => 'test-key']);
+    }
+
     private function fakeOllamaEmbedding(): void
     {
         Http::fake([
