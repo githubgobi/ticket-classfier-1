@@ -39,11 +39,26 @@ jobs:
           extensions: pdo_sqlite, pdo_pgsql, pgsql
           coverage: none
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
       - name: Copy .env
         run: cp .env.example .env
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        # The homepage view uses @vite(...), which reads a compiled
+        # manifest — ExampleTest hits "/" over HTTP, so it 500s without
+        # this, even though no test asserts on JS/CSS.
+        run: npm run build
 
       - name: Generate app key
         run: php artisan key:generate
