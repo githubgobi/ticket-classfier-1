@@ -176,8 +176,18 @@ npm test
 **Evals** are a different, separate concern from the tests above — see
 [docs/EVALS.md](docs/EVALS.md). The test suite fakes every Groq call, so it
 verifies the *code* but says nothing about classification *quality*.
-[tests/golden/tickets.json](tests/golden/tickets.json) is a 30-example,
-human-labeled fixture for that — no eval harness yet, that's next.
+
+```bash
+php artisan eval:run
+```
+
+Runs [tests/golden/tickets.json](tests/golden/tickets.json) (30 human-labeled
+examples) against the real classifier and reports accuracy, a confusion
+matrix, and per-case-type breakdown — real Groq calls, real API key
+required. Current result: **93.3%** (28/30), with every deliberately
+tricky example classified correctly — see [docs/EVALS.md](docs/EVALS.md)
+for the full writeup, including a real model-deprecation bug this exact
+process caught that the fully-mocked test suite couldn't.
 
 ## API
 

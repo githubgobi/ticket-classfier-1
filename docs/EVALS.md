@@ -50,33 +50,91 @@ clear examples, but scoring the `ambiguous` and `multi-issue` cases that
 way would be misleading — gold-026, for instance, could reasonably land on
 either `documentation` or `bug`, and a harness that marks the "wrong" one
 as a flat failure is measuring disagreement with one person's judgment
-call, not classifier quality. Tomorrow's harness should grade those
-against the `notes` field's stated alternatives as partial credit, not
-binary pass/fail.
+call, not classifier quality. The harness below reports accuracy broken
+down by `case_type` for exactly this reason — a drop in the `clear` bucket
+means the classifier got worse; a drop in `ambiguous` might just mean it
+made a different defensible call. It does not yet do automatic partial
+credit against the `notes` field's stated alternatives — that's still a
+manual read of the mismatch list, not something scored automatically.
 
-### Drift tracking
+## The harness
 
-The value of a golden set isn't the first run — it's the twentieth, run
-after a system prompt tweak, a model change, or three months of nothing
-happening at all. Unit tests can't catch this because they never touch the
-real model. Running this same fixture on a schedule (or before merging a
-prompt change) and diffing category-accuracy over time is the only thing
-in this repo that would catch quality silently degrading.
+```bash
+php artisan eval:run
+# tune pacing/retries if needed:
+php artisan eval:run --delay=2 --retries=3
+```
+
+Calls `TicketClassifierService` **directly, in-process** — not over HTTP.
+That's a deliberate choice: the point of an eval is to grade the model's
+judgment, not to re-exercise the HTTP/validation/rate-limiting layer the
+regular test suite already covers. It does mean the API's own `throttle:5,1`
+doesn't apply here; the only real constraint left is Groq's own API-level
+limits, handled with a configurable delay between calls and retry-with-
+backoff on failure. Requests that still fail after all retries are
+recorded as **errored**, not **wrong** — a 92% pass rate with 3 real
+mismatches means something different than 92% with 1 mismatch and 2
+requests that never got a response, and collapsing those would make the
+number meaningless.
+
+Each run prints an accuracy summary, a per-case-type breakdown, a
+confusion matrix, and the specific mismatches — then writes the full
+per-example detail to `storage/app/eval-results/<timestamp>.json`
+(ephemeral, gitignored) and appends one summary line to
+[`docs/eval-history.jsonl`](eval-history.jsonl) (committed) — that
+append-only log is the actual drift-tracking mechanism: run this after any
+prompt or model change, and a real regression shows up as a lower number
+in that file, not just a feeling that something seems off.
+
+## First real run
+
+```
+Accuracy: 28/30 (93.3%)
+
+By case type:
+  clear        21/23
+  ambiguous    3/3
+  multi-issue  1/1
+  vague        3/3
+```
+
+The two mismatches were both in the "clear" `other` category, and reading
+the model's actual reasoning made this more interesting than "the model
+was wrong":
+
+- **"How do I cancel my subscription?"** → classified `documentation`
+  ("missing instructions on how to cancel"), gold label `other`. That's a
+  defensible read — if the docs genuinely don't explain cancellation, this
+  *is* a documentation gap, not just a general question.
+- **"Can I get an invoice with our VAT number?"** → classified
+  `feature-request` ("requests a new invoice feature"), gold label
+  `other`. Also defensible — adding a field to invoices is arguably a
+  feature ask.
+
+Every one of the 7 examples I deliberately designed to be hard
+(`ambiguous`, `multi-issue`, `vague`) was classified correctly. The two
+actual misses were on examples I'd labeled "clear" — which says as much
+about where my own gold labels were underspecified as it does about the
+classifier. That's the eval discipline working as intended: it surfaced a
+real disagreement to look at, instead of a green checkmark that hides it.
 
 ### A real constraint discovered while building this
 
-Attempting even a small, manual spot-check of 5 golden examples against
-the live endpoint today hit two independent rate limits back to back: the
-API's own `throttle:5,1` (by design — see the main README), and, once past
-that, Groq's free-tier account quota, exhausted from this session's
-cumulative real API calls across all three projects in this program. The
-second one produced the same `502` a genuine Groq outage would — from the
-outside, "quota exhausted" and "Groq is down" are indistinguishable.
+The first attempt at even a small manual spot-check produced a 502 on
+every single request, which looked exactly like the account's Groq free
+tier quota being exhausted from this session's cumulative usage across all
+three projects in this program — a very plausible explanation given how
+many real calls had been made. It wasn't that. Checking the raw error
+directly against Groq's API (bypassing this app's own error handling)
+showed `model_not_found`: the `llama-3.3-70b-versatile` model this project
+had used from day one is gone from Groq's current model catalog entirely,
+not rate-limited, not down — deprecated. Every real classification since
+whenever that happened had been silently failing into the graceful 502
+path built for exactly this kind of failure, which is precisely why it
+took an eval run (not the faked test suite) to notice.
 
-This isn't a flaw in the golden set, but it's a real design constraint for
-tomorrow's harness: running all 30 examples straight through will hit the
-app's own rate limit well before finishing (30 requests at 5/minute is a
-minimum of ~6 minutes even with zero Groq latency), and needs to
-distinguish "we got throttled, retry with backoff" from "the classifier
-actually got it wrong" — collapsing those into the same failure would make
-eval results meaningless on a quota-constrained free tier.
+Fixed by switching to `openai/gpt-oss-20b` (verified against Groq's API
+directly before changing the default), which is what produced the 93.3%
+number above. The bug hunt is arguably a better argument for running real
+evals than the accuracy number is: a fully-mocked test suite had no way to
+ever catch a third-party model being retired out from under it.
