@@ -84,7 +84,7 @@ DB_PASSWORD=
 
 GROK_API_KEY=your-groq-api-key
 GROQ_BASE_URI=https://api.groq.com/openai/v1
-GROQ_MODEL=llama-3.3-70b-versatile
+GROQ_MODEL=openai/gpt-oss-20b
 GROQ_TIMEOUT=10
 ```
 
